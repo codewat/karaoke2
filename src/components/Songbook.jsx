@@ -22,7 +22,7 @@ export default function Songbook({ onSelectSongForSearch, onDirectQueue }) {
     filter === 'All' ? songs : songs.filter((s) => s.category?.toLowerCase() === filter.toLowerCase());
 
   return (
-    <div className="space-y-4 pb-20">
+    <div className="space-y-4 pb-48">
       <div className="flex items-center justify-between px-1">
         <div className="text-xs font-bold text-cyan-400 uppercase tracking-wider flex items-center gap-1.5">
           <BookOpen className="w-3.5 h-3.5" />

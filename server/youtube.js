@@ -45,12 +45,12 @@ export function buildKaraokeQuery(rawQuery, category = 'all') {
 /**
  * Main search function with YouTube Data API v3 (Embeddable Guaranteed) + Fallback
  */
-export async function searchYouTube(rawQuery, category = 'all', limit = 20) {
+export async function searchYouTube(rawQuery, category = 'all', limit = 20, pageToken = '') {
   const searchQuery = buildKaraokeQuery(rawQuery, category);
-  if (!searchQuery) return [];
+  if (!searchQuery) return { results: [], nextPageToken: null };
 
   // Check cache
-  const cacheKey = `${searchQuery.toLowerCase()}_${limit}`;
+  const cacheKey = `${searchQuery.toLowerCase()}_${limit}_${pageToken}`;
   const cached = searchCache.get(cacheKey);
   if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
     return cached.data;
@@ -59,8 +59,8 @@ export async function searchYouTube(rawQuery, category = 'all', limit = 20) {
   // 1. Try Official YouTube Data API v3 (guarantees videoEmbeddable=true)
   if (YOUTUBE_API_KEY) {
     try {
-      const apiResults = await searchViaYouTubeAPI(searchQuery, YOUTUBE_API_KEY, limit);
-      if (apiResults && apiResults.length > 0) {
+      const apiResults = await searchViaYouTubeAPI(searchQuery, YOUTUBE_API_KEY, limit, pageToken);
+      if (apiResults && apiResults.results && apiResults.results.length > 0) {
         searchCache.set(cacheKey, { data: apiResults, timestamp: Date.now() });
         return apiResults;
       }
@@ -74,14 +74,19 @@ export async function searchYouTube(rawQuery, category = 'all', limit = 20) {
     const results = await ytSearch(searchQuery);
     const videos = results.videos || [];
 
+    const pageNum = parseInt(pageToken || '1', 10) || 1;
+    const startIndex = (pageNum - 1) * limit;
+
     const filtered = videos
       .filter((video) => {
         if (!video.videoId) return false;
         if (video.seconds && video.seconds > 960) return false;
         if (video.seconds && video.seconds < 30) return false;
         return true;
-      })
-      .slice(0, limit)
+      });
+
+    const pageVideos = filtered
+      .slice(startIndex, startIndex + limit)
       .map((v) => ({
         id: v.videoId,
         title: cleanVideoTitle(v.title),
@@ -93,22 +98,30 @@ export async function searchYouTube(rawQuery, category = 'all', limit = 20) {
         ago: v.ago || ''
       }));
 
-    searchCache.set(cacheKey, { data: filtered, timestamp: Date.now() });
-    return filtered;
+    const hasMore = startIndex + limit < filtered.length;
+    const nextToken = hasMore ? String(pageNum + 1) : null;
+
+    const responseData = { results: pageVideos, nextPageToken: nextToken };
+    searchCache.set(cacheKey, { data: responseData, timestamp: Date.now() });
+    return responseData;
   } catch (error) {
     console.error('yt-search error:', error);
-    return [];
+    return { results: [], nextPageToken: null };
   }
 }
 
 /**
  * Search using YouTube Data API v3 with videoEmbeddable=true filter
  */
-async function searchViaYouTubeAPI(query, apiKey, limit = 20) {
+async function searchViaYouTubeAPI(query, apiKey, limit = 20, pageToken = '') {
   // videoEmbeddable=true guarantees that the video can be played in third-party website iframes!
-  const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoEmbeddable=true&videoSyndicated=true&maxResults=${limit}&q=${encodeURIComponent(
+  let url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoEmbeddable=true&videoSyndicated=true&maxResults=${limit}&q=${encodeURIComponent(
     query
   )}&key=${apiKey}`;
+
+  if (pageToken) {
+    url += `&pageToken=${encodeURIComponent(pageToken)}`;
+  }
 
   const res = await fetch(url);
   const data = await res.json();
@@ -118,13 +131,13 @@ async function searchViaYouTubeAPI(query, apiKey, limit = 20) {
   }
 
   const items = data.items || [];
-  if (items.length === 0) return [];
+  if (items.length === 0) return { results: [], nextPageToken: null };
 
   // Extract video IDs to fetch duration in a single lightweight batch request
   const videoIds = items.map((item) => item.id.videoId).filter(Boolean);
   const durationMap = await fetchVideoDurations(videoIds, apiKey);
 
-  return items.map((item) => {
+  const results = items.map((item) => {
     const videoId = item.id.videoId;
     const snippet = item.snippet || {};
     const thumb =
@@ -145,6 +158,11 @@ async function searchViaYouTubeAPI(query, apiKey, limit = 20) {
       ago: ''
     };
   });
+
+  return {
+    results,
+    nextPageToken: data.nextPageToken || null
+  };
 }
 
 /**

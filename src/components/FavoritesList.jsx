@@ -1,5 +1,5 @@
 import React from 'react';
-import { Heart, Plus, Zap, Trash2, Music } from 'lucide-react';
+import { Heart, Plus, Trash2 } from 'lucide-react';
 
 export default function FavoritesList({
   favorites = [],
@@ -8,7 +8,7 @@ export default function FavoritesList({
   onSwitchToSearch
 }) {
   return (
-    <div className="space-y-4 pb-20">
+    <div className="space-y-4 pb-48">
       <div className="flex items-center justify-between px-1">
         <div className="text-xs font-bold text-rose-400 uppercase tracking-wider flex items-center gap-1.5">
           <Heart className="w-3.5 h-3.5 fill-rose-500" />
@@ -58,19 +58,11 @@ export default function FavoritesList({
                 </div>
               </div>
 
-              {/* Actions */}
-              <div className="flex items-center gap-1.5 flex-shrink-0">
-                <button
-                  onClick={() => onAddToQueue(song, true)}
-                  className="p-2 rounded-xl bg-white/5 hover:bg-cyan-500/20 text-cyan-400 transition-all active:scale-95"
-                  title="Play Next"
-                >
-                  <Zap className="w-4 h-4" />
-                </button>
-
+              {/* Actions (Only Queue and Delete, no lightning button) */}
+              <div className="flex items-center gap-2 flex-shrink-0">
                 <button
                   onClick={() => onAddToQueue(song, false)}
-                  className="px-3 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold flex items-center gap-1 active:scale-95 transition-all shadow-md"
+                  className="px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold flex items-center gap-1.5 active:scale-95 transition-all shadow-md"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   <span>Queue</span>
@@ -91,4 +83,3 @@ export default function FavoritesList({
     </div>
   );
 }
-

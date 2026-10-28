@@ -51,14 +51,15 @@ function getOrCreateRoom(roomId = 'SING') {
 app.get('/api/search', async (req, res) => {
   const query = req.query.q || '';
   const category = req.query.category || 'all';
+  const pageToken = req.query.pageToken || '';
 
   if (!query.trim()) {
-    return res.json({ results: [] });
+    return res.json({ results: [], nextPageToken: null });
   }
 
   try {
-    const results = await searchYouTube(query, category);
-    res.json({ query, category, results });
+    const { results, nextPageToken } = await searchYouTube(query, category, 20, pageToken);
+    res.json({ query, category, results, nextPageToken });
   } catch (err) {
     console.error('Search API error:', err);
     res.status(500).json({ error: 'Failed to search YouTube' });

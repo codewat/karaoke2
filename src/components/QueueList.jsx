@@ -31,7 +31,7 @@ export default function QueueList({
   };
 
   return (
-    <div className="space-y-4 pb-20">
+    <div className="space-y-4 pb-48">
       {/* Current Song Card */}
       <div className="space-y-1.5">
         <div className="text-xs font-bold text-rose-400 uppercase tracking-wider flex items-center gap-1.5 px-1">
