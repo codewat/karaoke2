@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad512" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e1026" />
+      <stop offset="100%" stop-color="#0a0a12" />
+    </linearGradient>
+    <linearGradient id="micGrad512" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f43f5e" />
+      <stop offset="50%" stop-color="#d946ef" />
+      <stop offset="100%" stop-color="#06b6d4" />
+    </linearGradient>
+    <filter id="glow512" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="20" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="512" height="512" rx="112" fill="url(#bgGrad512)" />
+
+  <!-- Outer Ring Glow -->
+  <circle cx="256" cy="256" r="170" fill="none" stroke="url(#micGrad512)" stroke-width="10" opacity="0.6" filter="url(#glow512)" />
+  <circle cx="256" cy="256" r="170" fill="none" stroke="url(#micGrad512)" stroke-width="8" />
+
+  <!-- Microphone Icon -->
+  <g transform="translate(170, 130) scale(3.5)" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <!-- Mic Body -->
+    <path d="M25 5 A 10 10 0 0 0 5 5 L 5 25 A 10 10 0 0 0 25 25 Z" fill="url(#micGrad512)" stroke="white" />
+    <!-- Mic Stand Arc -->
+    <path d="M 0 20 A 15 15 0 0 0 30 20" />
+    <!-- Stand Base -->
+    <line x1="15" y1="35" x2="15" y2="45" />
+    <line x1="8" y1="45" x2="22" y2="45" />
+  </g>
+</svg>
