@@ -276,7 +276,7 @@ export default function ScreenPlayer({ roomId = 'SING', onSwitchMode }) {
                   Ready to Sing!
                 </h1>
                 <p className="text-gray-300 text-sm sm:text-base">
-                  I-scan ang QR code gamit ang Phone 2 aron makapili ug makatukar og kanta!
+                  Scan the QR code with Phone 2 to search and queue songs!
                 </p>
               </div>
 
@@ -287,7 +287,7 @@ export default function ScreenPlayer({ roomId = 'SING', onSwitchMode }) {
 
               <div className="space-y-2 w-full max-w-sm">
                 <div className="text-xs uppercase tracking-widest text-gray-400">
-                  O ablihi kini sa browser sa phone:
+                  Or open this URL in your phone browser:
                 </div>
                 {isEditingHost ? (
                   <div className="flex gap-2">
@@ -320,7 +320,7 @@ export default function ScreenPlayer({ roomId = 'SING', onSwitchMode }) {
                   </div>
                 )}
                 <p className="text-[11px] text-amber-400/90 font-medium">
-                  ⚠️ Siguroa nga ang Phone ug Screen naka-connect sa SAME Wi-Fi!
+                  ⚠️ Make sure Phone and Screen are connected to the SAME Wi-Fi network!
                 </p>
               </div>
 
@@ -372,7 +372,7 @@ export default function ScreenPlayer({ roomId = 'SING', onSwitchMode }) {
             </div>
 
             <p className="text-xs text-gray-300">
-              I-scan kining dako nga QR code gamit ang camera sa imong phone aron makapili ug makatukar og kanta!
+              Scan this QR code with your phone camera to search & queue songs!
             </p>
 
             <div className="p-5 bg-white rounded-3xl inline-block shadow-2xl transition-transform hover:scale-105">
@@ -381,7 +381,7 @@ export default function ScreenPlayer({ roomId = 'SING', onSwitchMode }) {
 
             <div className="space-y-1">
               <div className="text-[11px] text-gray-400 uppercase tracking-wider font-semibold">
-                O ablihi kini sa browser sa phone:
+                Or open this URL in your browser:
               </div>
               <div className="text-xs text-rose-400 font-mono font-bold bg-black/60 p-2.5 rounded-xl border border-white/10 select-all break-all">
                 {remoteUrl}

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Heart, Plus, Trash2 } from 'lucide-react';
+import { Heart, Plus, Trash2, Eye } from 'lucide-react';
 
 export default function FavoritesList({
   favorites = [],
@@ -21,15 +21,15 @@ export default function FavoritesList({
           <div className="p-3 bg-rose-500/10 rounded-2xl inline-block text-rose-400">
             <Heart className="w-8 h-8 mx-auto" />
           </div>
-          <p className="text-sm font-semibold text-gray-300">Walay naka-save nga favorites.</p>
+          <p className="text-sm font-semibold text-gray-300">No favorite songs saved yet.</p>
           <p className="text-xs text-gray-500 max-w-xs mx-auto">
-            I-tap ang kasing-kasing (❤️) icon sa mga kanta aron ma-save diri para dali ra i-queue sunod balik!
+            Tap the heart (❤️) icon on any song in Search to save it here for fast 1-tap queuing!
           </p>
           <button
             onClick={onSwitchToSearch}
             className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-semibold shadow-md active:scale-95 transition-transform"
           >
-            Pangita og Kanta
+            Search Songs
           </button>
         </div>
       ) : (
@@ -52,13 +52,18 @@ export default function FavoritesList({
               {/* Info */}
               <div className="flex-1 min-w-0">
                 <h4 className="text-xs sm:text-sm font-semibold text-white truncate">{song.title}</h4>
-                <div className="flex items-center gap-2 text-[10px] text-gray-400 mt-0.5">
+                <div className="flex items-center gap-1.5 text-[10px] text-gray-400 mt-0.5">
                   <span>{song.duration}</span>
+                  {song.formattedViews && (
+                    <span className="text-cyan-400 flex items-center gap-0.5">
+                      · <Eye className="w-2.5 h-2.5 inline" /> {song.formattedViews}
+                    </span>
+                  )}
                   <span>· {song.author}</span>
                 </div>
               </div>
 
-              {/* Actions (Only Queue and Delete, no lightning button) */}
+              {/* Actions */}
               <div className="flex items-center gap-2 flex-shrink-0">
                 <button
                   onClick={() => onAddToQueue(song, false)}

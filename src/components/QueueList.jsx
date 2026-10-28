@@ -10,7 +10,8 @@ import {
   Play,
   AlertTriangle,
   X,
-  FastForward
+  FastForward,
+  Eye
 } from 'lucide-react';
 
 export default function QueueList({
@@ -67,7 +68,7 @@ export default function QueueList({
           </div>
         ) : (
           <div className="glass-panel p-4 rounded-2xl border border-white/5 text-center text-gray-400 text-xs">
-            Walay kanta nga nag-play sa pagkakaron. Pili o i-queue ang imong kanta!
+            No song currently playing. Search and queue a song!
           </div>
         )}
       </div>
@@ -91,16 +92,16 @@ export default function QueueList({
             <div className="p-3 bg-white/5 rounded-2xl inline-block text-gray-400">
               <Music className="w-8 h-8 mx-auto" />
             </div>
-            <p className="text-sm font-semibold text-gray-300">Walay naka-reserba nga kanta.</p>
+            <p className="text-sm font-semibold text-gray-300">Queue is currently empty.</p>
             <p className="text-xs text-gray-500 max-w-xs mx-auto">
-              Pangita og kanta sa Search tab aron ma-add sa listahan!
+              Search for your favorite karaoke songs to add them to the queue!
             </p>
             <button
               onClick={onSwitchToSearch}
               className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-semibold shadow-md active:scale-95 transition-transform inline-flex items-center gap-1.5"
             >
               <Sparkles className="w-3.5 h-3.5" />
-              <span>Pangita og Kanta</span>
+              <span>Search Songs</span>
             </button>
           </div>
         ) : (
@@ -140,6 +141,11 @@ export default function QueueList({
                     </h4>
                     <div className="flex items-center gap-2 text-[10px] text-gray-400 mt-0.5">
                       <span>{song.duration}</span>
+                      {song.formattedViews && (
+                        <span className="text-cyan-400 flex items-center gap-0.5">
+                          · <Eye className="w-2.5 h-2.5 inline" /> {song.formattedViews}
+                        </span>
+                      )}
                       {song.addedBy && <span>· {song.addedBy}</span>}
                     </div>
                   </div>
@@ -215,7 +221,7 @@ export default function QueueList({
 
             {/* Description */}
             <p className="text-xs text-gray-300">
-              Gusto ba nimo <strong>i-stop ang kasamtangang nag-play</strong> nga kanta ug <strong>ipatukar dayon</strong> kining kantaha?
+              Do you want to <strong>stop the currently playing song</strong> and <strong>play this song immediately</strong>?
             </p>
 
             {/* Selected Song Preview */}
@@ -226,7 +232,7 @@ export default function QueueList({
                 className="w-14 h-11 rounded-xl object-cover bg-black flex-shrink-0"
               />
               <div className="min-w-0 flex-1">
-                <div className="text-[10px] uppercase font-bold text-rose-400">Play Now:</div>
+                <div className="text-[10px] uppercase font-bold text-rose-400">Play Next:</div>
                 <h5 className="text-xs font-bold text-white truncate">{songToPlayNow.title}</h5>
                 <p className="text-[10px] text-gray-400 truncate mt-0.5">{songToPlayNow.author}</p>
               </div>
@@ -235,7 +241,7 @@ export default function QueueList({
             {/* If there's a currently playing song, show it too */}
             {currentSong && (
               <div className="text-[11px] text-gray-400 px-1 flex items-center gap-1.5">
-                <span className="text-amber-400 font-semibold">Mo-stop:</span>
+                <span className="text-amber-400 font-semibold">Stopping:</span>
                 <span className="truncate flex-1">{currentSong.title}</span>
               </div>
             )}

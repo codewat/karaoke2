@@ -43,6 +43,21 @@ export function buildKaraokeQuery(rawQuery, category = 'all') {
 }
 
 /**
+ * Format view count (e.g. 1500000 -> "1.5M views", 45000 -> "45K views")
+ */
+export function formatViews(views) {
+  const num = typeof views === 'string' ? parseInt(views, 10) : views;
+  if (!num || isNaN(num) || num <= 0) return '';
+  if (num >= 1_000_000) {
+    return `${(num / 1_000_000).toFixed(1).replace(/\.0$/, '')}M views`;
+  }
+  if (num >= 1_000) {
+    return `${(num / 1_000).toFixed(1).replace(/\.0$/, '')}K views`;
+  }
+  return `${num} views`;
+}
+
+/**
  * Main search function with YouTube Data API v3 (Embeddable Guaranteed) + Fallback
  */
 export async function searchYouTube(rawQuery, category = 'all', limit = 20, pageToken = '') {
@@ -95,6 +110,7 @@ export async function searchYouTube(rawQuery, category = 'all', limit = 20, page
         seconds: v.seconds || 0,
         thumbnail: v.thumbnail || v.image || `https://i.ytimg.com/vi/${v.videoId}/mqdefault.jpg`,
         views: v.views || 0,
+        formattedViews: formatViews(v.views || 0),
         ago: v.ago || ''
       }));
 
@@ -111,10 +127,9 @@ export async function searchYouTube(rawQuery, category = 'all', limit = 20, page
 }
 
 /**
- * Search using YouTube Data API v3 with videoEmbeddable=true filter
+ * Search using YouTube Data API v3 with videoEmbeddable=true filter & view counts
  */
 async function searchViaYouTubeAPI(query, apiKey, limit = 20, pageToken = '') {
-  // videoEmbeddable=true guarantees that the video can be played in third-party website iframes!
   let url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoEmbeddable=true&videoSyndicated=true&maxResults=${limit}&q=${encodeURIComponent(
     query
   )}&key=${apiKey}`;
@@ -133,9 +148,9 @@ async function searchViaYouTubeAPI(query, apiKey, limit = 20, pageToken = '') {
   const items = data.items || [];
   if (items.length === 0) return { results: [], nextPageToken: null };
 
-  // Extract video IDs to fetch duration in a single lightweight batch request
+  // Extract video IDs to fetch duration & statistics in a single batch request
   const videoIds = items.map((item) => item.id.videoId).filter(Boolean);
-  const durationMap = await fetchVideoDurations(videoIds, apiKey);
+  const videoDetailsMap = await fetchVideoDetails(videoIds, apiKey);
 
   const results = items.map((item) => {
     const videoId = item.id.videoId;
@@ -145,16 +160,22 @@ async function searchViaYouTubeAPI(query, apiKey, limit = 20, pageToken = '') {
       snippet.thumbnails?.high?.url ||
       `https://i.ytimg.com/vi/${videoId}/mqdefault.jpg`;
 
-    const durationInfo = durationMap[videoId] || { duration: '', seconds: 0 };
+    const details = videoDetailsMap[videoId] || {
+      duration: '',
+      seconds: 0,
+      views: 0,
+      formattedViews: ''
+    };
 
     return {
       id: videoId,
       title: cleanVideoTitle(snippet.title),
       author: snippet.channelTitle || 'Karaoke Channel',
-      duration: durationInfo.duration,
-      seconds: durationInfo.seconds,
+      duration: details.duration,
+      seconds: details.seconds,
+      views: details.views,
+      formattedViews: details.formattedViews,
       thumbnail: thumb,
-      views: 0,
       ago: ''
     };
   });
@@ -166,12 +187,12 @@ async function searchViaYouTubeAPI(query, apiKey, limit = 20, pageToken = '') {
 }
 
 /**
- * Batch fetch video durations using videos endpoint (only 1 quota unit)
+ * Batch fetch video duration & view count statistics (1 quota unit)
  */
-async function fetchVideoDurations(videoIds, apiKey) {
+async function fetchVideoDetails(videoIds, apiKey) {
   if (!videoIds || videoIds.length === 0) return {};
   try {
-    const url = `https://www.googleapis.com/youtube/v3/videos?part=contentDetails&id=${videoIds.join(
+    const url = `https://www.googleapis.com/youtube/v3/videos?part=contentDetails,statistics&id=${videoIds.join(
       ','
     )}&key=${apiKey}`;
     const res = await fetch(url);
@@ -180,11 +201,19 @@ async function fetchVideoDurations(videoIds, apiKey) {
     const map = {};
     for (const item of data.items || []) {
       const iso = item.contentDetails?.duration;
-      map[item.id] = parseISO8601Duration(iso);
+      const parsed = parseISO8601Duration(iso);
+      const views = item.statistics?.viewCount ? parseInt(item.statistics.viewCount, 10) : 0;
+
+      map[item.id] = {
+        duration: parsed.duration,
+        seconds: parsed.seconds,
+        views,
+        formattedViews: formatViews(views)
+      };
     }
     return map;
   } catch (err) {
-    console.warn('Failed to fetch video durations:', err.message);
+    console.warn('Failed to fetch video details:', err.message);
     return {};
   }
 }

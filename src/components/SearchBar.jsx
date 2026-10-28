@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, Loader2, Plus, Heart, Check, ChevronDown } from 'lucide-react';
+import { Search, Loader2, Plus, Heart, Check, ChevronDown, Eye } from 'lucide-react';
 
 export default function SearchBar({
   onAddToQueue,
@@ -83,7 +83,7 @@ export default function SearchBar({
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Type song title or singer (e.g. 'my way', 'queen', 'parokya')..."
+            placeholder="Type song title or artist (e.g. 'my way', 'queen', 'parokya')..."
             className="w-full bg-[#181824] border border-white/10 rounded-2xl pl-11 pr-24 py-3.5 text-sm sm:text-base text-white placeholder-gray-500 focus:outline-none focus:border-rose-500 transition-colors shadow-inner"
           />
           <Search className="w-5 h-5 text-gray-400 absolute left-3.5 pointer-events-none" />
@@ -115,14 +115,14 @@ export default function SearchBar({
       {/* Empty State */}
       {!loading && hasSearched && results.length === 0 && (
         <div className="py-10 text-center glass-panel rounded-2xl p-6 space-y-2 border border-white/10">
-          <p className="text-gray-300 font-semibold text-sm">Walay nakit-an nga kanta.</p>
+          <p className="text-gray-300 font-semibold text-sm">No songs found.</p>
           <p className="text-gray-500 text-xs">
-            Sulayi pag-type og lain nga keyword o titulo sa kanta.
+            Try searching with a different keyword or artist name.
           </p>
         </div>
       )}
 
-      {/* Results List (with large bottom padding pb-48 so it's NEVER covered by Now Playing) */}
+      {/* Results List */}
       {!loading && results.length > 0 && (
         <div className="space-y-2.5 pb-48">
           {results.map((song) => {
@@ -154,7 +154,14 @@ export default function SearchBar({
                   <h4 className="text-xs sm:text-sm font-semibold text-white line-clamp-2 leading-snug">
                     {song.title}
                   </h4>
-                  <p className="text-[11px] text-gray-400 truncate mt-0.5">{song.author}</p>
+                  <div className="flex items-center gap-1.5 text-[11px] text-gray-400 truncate mt-0.5">
+                    <span className="truncate">{song.author}</span>
+                    {song.formattedViews && (
+                      <span className="text-cyan-400 font-medium flex-shrink-0 flex items-center gap-0.5">
+                        · <Eye className="w-3 h-3 inline" /> {song.formattedViews}
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 {/* Action Buttons */}
@@ -172,7 +179,7 @@ export default function SearchBar({
                     <Heart className={`w-4 h-4 ${favorited ? 'fill-rose-500' : ''}`} />
                   </button>
 
-                  {/* Main Queue Button (No lightning button) */}
+                  {/* Main Queue Button */}
                   <button
                     onClick={() => handleQueueClick(song)}
                     className={`px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all active:scale-95 shadow-md ${
@@ -198,7 +205,7 @@ export default function SearchBar({
             );
           })}
 
-          {/* Load More Button (Never covered, positioned comfortably with pb-48) */}
+          {/* Load More Button */}
           {nextPageToken && (
             <div className="pt-3 pb-6 flex justify-center">
               <button
