@@ -165,7 +165,7 @@ export default function SettingsModal({
             <div className="p-3 rounded-xl bg-black/40 border border-white/5 space-y-1.5 text-xs text-gray-300">
               <div className="font-bold text-white flex items-center gap-1.5">
                 <span className="text-base">🤖</span>
-                <span>Android (Chrome / Edge):</span>
+                <span>Android Phone (Chrome / Edge):</span>
               </div>
               <ol className="list-decimal list-inside space-y-1 text-[11px] text-gray-300 pl-1">
                 <li>
@@ -178,6 +178,30 @@ export default function SettingsModal({
                   Confirm <strong className="text-white">"Install"</strong> when prompted.
                 </li>
               </ol>
+            </div>
+
+            {/* Android TV APK Download */}
+            <div className="p-3 rounded-xl bg-black/40 border border-cyan-500/30 space-y-2 text-xs text-gray-300">
+              <div className="font-bold text-white flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-base">📺</span>
+                  <span>Sony / Android Smart TV App:</span>
+                </div>
+                <span className="text-[10px] bg-cyan-500/20 text-cyan-300 px-2 py-0.5 rounded-full font-semibold">
+                  TV APK
+                </span>
+              </div>
+              <p className="text-[11px] text-gray-300">
+                Install as a native TV app on your Sony Bravia or Android TV via USB.
+              </p>
+              <a
+                href="/PartyKaraoke-SonyTV.apk"
+                download="PartyKaraoke-SonyTV.apk"
+                className="w-full py-2.5 rounded-xl bg-cyan-600/25 hover:bg-cyan-600/40 border border-cyan-500/40 text-cyan-200 hover:text-white font-semibold text-xs flex items-center justify-center gap-2 active:scale-95 transition-all text-center"
+              >
+                <Download className="w-4 h-4 text-cyan-400" />
+                <span>Download Sony TV APK (PartyKaraoke.apk)</span>
+              </a>
             </div>
           </div>
         </div>

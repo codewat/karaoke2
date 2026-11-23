@@ -7,4 +7,8 @@ dist/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+android-tv/.gradle/
+android-tv/build/
+android-tv/app/build/
+android-tv/local.properties
 
