@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Tv, Smartphone, Mic2, Sparkles, Wifi, Download } from 'lucide-react';
+import { Tv, Smartphone, Mic2, Sparkles, Wifi, Download, Settings } from 'lucide-react';
+import SettingsModal from './SettingsModal';
 
 export default function ModeSelect({ onSelectMode, defaultRoom = 'SING' }) {
   const [roomId, setRoomId] = useState(defaultRoom);
   const [serverInfo, setServerInfo] = useState(null);
   const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [showSettings, setShowSettings] = useState(false);
 
   useEffect(() => {
     fetch('/api/server-info')
@@ -116,19 +118,25 @@ export default function ModeSelect({ onSelectMode, defaultRoom = 'SING' }) {
         </div>
 
         {/* PWA Install Button / Home Screen Tip */}
-        {deferredPrompt ? (
-          <button
-            onClick={handleInstallClick}
-            className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-purple-600 to-rose-600 hover:from-purple-500 hover:to-rose-500 text-white font-semibold text-xs flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all"
-          >
-            <Download className="w-4 h-4" />
-            <span>Install Party Karaoke on Phone</span>
-          </button>
-        ) : (
-          <div className="text-center p-2.5 rounded-xl bg-white/5 border border-white/5 text-[11px] text-gray-400">
-            💡 <strong>Install as App:</strong> Tap browser menu / Share (⬆️) ➔ <span className="text-rose-300 font-semibold">"Add to Home Screen"</span>
-          </div>
-        )}
+        <div className="space-y-2">
+          {deferredPrompt ? (
+            <button
+              onClick={handleInstallClick}
+              className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-purple-600 to-rose-600 hover:from-purple-500 hover:to-rose-500 text-white font-semibold text-xs flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all"
+            >
+              <Download className="w-4 h-4" />
+              <span>Install Party Karaoke on Phone</span>
+            </button>
+          ) : (
+            <button
+              onClick={() => setShowSettings(true)}
+              className="w-full text-center p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 text-[11px] text-gray-300 transition-colors flex items-center justify-center gap-2"
+            >
+              <Settings className="w-3.5 h-3.5 text-cyan-400" />
+              <span>Install as App / Settings (Tap here for guide)</span>
+            </button>
+          )}
+        </div>
 
         {/* Server WiFi connection info */}
         {serverInfo && (
@@ -140,6 +148,13 @@ export default function ModeSelect({ onSelectMode, defaultRoom = 'SING' }) {
           </div>
         )}
       </div>
+
+      {/* Settings & App Download Modal */}
+      <SettingsModal
+        isOpen={showSettings}
+        onClose={() => setShowSettings(false)}
+        roomId={roomId}
+      />
     </div>
   );
 }

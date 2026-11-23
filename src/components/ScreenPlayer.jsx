@@ -11,9 +11,11 @@ import {
   Pause,
   RotateCcw,
   Volume2,
-  X
+  X,
+  Settings
 } from 'lucide-react';
 import { getSocket } from '../services/socket';
+import SettingsModal from './SettingsModal';
 
 export default function ScreenPlayer({ roomId = 'SING', onSwitchMode }) {
   const socket = getSocket();
@@ -21,6 +23,7 @@ export default function ScreenPlayer({ roomId = 'SING', onSwitchMode }) {
   const [queue, setQueue] = useState([]);
   const [connectedDevices, setConnectedDevices] = useState(1);
   const [showQRModal, setShowQRModal] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [serverInfo, setServerInfo] = useState(null);
   const [customHost, setCustomHost] = useState('');
@@ -218,6 +221,15 @@ export default function ScreenPlayer({ roomId = 'SING', onSwitchMode }) {
             {isFullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
           </button>
 
+          {/* Settings button */}
+          <button
+            onClick={() => setShowSettings(true)}
+            className="p-2 rounded-xl bg-white/10 hover:bg-white/20 active:scale-95 transition-all text-gray-200"
+            title="Settings & App Download"
+          >
+            <Settings className="w-4 h-4 text-cyan-400" />
+          </button>
+
           {/* Switch Mode */}
           <button
             onClick={onSwitchMode}
@@ -397,6 +409,13 @@ export default function ScreenPlayer({ roomId = 'SING', onSwitchMode }) {
           </div>
         </div>
       )}
+
+      {/* Settings & App Download Modal */}
+      <SettingsModal
+        isOpen={showSettings}
+        onClose={() => setShowSettings(false)}
+        roomId={roomId}
+      />
     </div>
   );
 }

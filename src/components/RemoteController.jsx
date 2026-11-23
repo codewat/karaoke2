@@ -8,7 +8,8 @@ import {
   Smartphone,
   Tv,
   Users,
-  Edit2
+  Edit2,
+  Settings
 } from 'lucide-react';
 import { getSocket } from '../services/socket';
 import SearchBar from './SearchBar';
@@ -16,6 +17,7 @@ import QueueList from './QueueList';
 import FavoritesList from './FavoritesList';
 import Songbook from './Songbook';
 import NowPlayingBar from './NowPlayingBar';
+import SettingsModal from './SettingsModal';
 
 export default function RemoteController({ roomId = 'SING', onSwitchMode }) {
   const socket = getSocket();
@@ -24,6 +26,7 @@ export default function RemoteController({ roomId = 'SING', onSwitchMode }) {
   const [queue, setQueue] = useState([]);
   const [playerState, setPlayerState] = useState('idle');
   const [connectedDevices, setConnectedDevices] = useState(1);
+  const [showSettings, setShowSettings] = useState(false);
   const [nickname, setNickname] = useState(() => {
     return localStorage.getItem('karaoke_nickname') || 'Singer 1';
   });
@@ -161,14 +164,28 @@ export default function RemoteController({ roomId = 'SING', onSwitchMode }) {
           )}
         </div>
 
-        {/* Switch to Screen button */}
-        <button
-          onClick={onSwitchMode}
-          className="flex items-center gap-1 text-xs text-gray-400 hover:text-white px-2.5 py-1 rounded-xl hover:bg-white/5 transition-colors"
-        >
-          <Tv className="w-3.5 h-3.5 text-rose-400" />
-          <span>Screen Mode</span>
-        </button>
+        {/* Header Right Actions */}
+        <div className="flex items-center gap-1.5">
+          {/* Settings & Download App button */}
+          <button
+            onClick={() => setShowSettings(true)}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white transition-colors"
+            title="Settings & App Download"
+          >
+            <Settings className="w-3.5 h-3.5 text-cyan-400" />
+            <span className="text-xs font-medium">Settings</span>
+          </button>
+
+          {/* Switch to Screen button */}
+          <button
+            onClick={onSwitchMode}
+            className="flex items-center gap-1 text-xs text-gray-400 hover:text-white px-2 py-1.5 rounded-xl hover:bg-white/5 transition-colors"
+            title="Switch to Screen Mode"
+          >
+            <Tv className="w-3.5 h-3.5 text-rose-400" />
+            <span className="hidden sm:inline">Screen</span>
+          </button>
+        </div>
       </header>
 
       {/* Main Tab Content */}
@@ -276,6 +293,15 @@ export default function RemoteController({ roomId = 'SING', onSwitchMode }) {
           </button>
         </div>
       </nav>
+
+      {/* Settings & App Download Modal */}
+      <SettingsModal
+        isOpen={showSettings}
+        onClose={() => setShowSettings(false)}
+        roomId={roomId}
+        nickname={nickname}
+        onSaveNickname={handleSaveNickname}
+      />
     </div>
   );
 }
