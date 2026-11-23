@@ -122,6 +122,13 @@ public class MainActivity extends Activity {
 
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
+        // TV remote center/OK/Play keys: trigger audio activate event in WebView
+        if (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER
+                || keyCode == KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE || keyCode == KeyEvent.KEYCODE_MEDIA_PLAY
+                || keyCode == KeyEvent.KEYCODE_SPACE) {
+            webView.evaluateJavascript("window.dispatchEvent(new CustomEvent('tv-remote-play'));", null);
+        }
+
         // TV remote Menu key opens URL settings dialog
         if (keyCode == KeyEvent.KEYCODE_MENU || keyCode == KeyEvent.KEYCODE_SETTINGS) {
             showUrlDialog();

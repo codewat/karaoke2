@@ -29,6 +29,10 @@ export default function ScreenPlayer({ roomId = 'SING', onSwitchMode }) {
   const [customHost, setCustomHost] = useState('');
   const [isEditingHost, setIsEditingHost] = useState(false);
 
+  const [localPlayerState, setLocalPlayerState] = useState('idle');
+  const [needsActivation, setNeedsActivation] = useState(false);
+  const activationTimerRef = useRef(null);
+
   const iframeRef = useRef(null);
   const containerRef = useRef(null);
 
@@ -53,20 +57,123 @@ export default function ScreenPlayer({ roomId = 'SING', onSwitchMode }) {
 
   const remoteUrl = `${window.location.protocol}//${hostToUse}/?mode=remote&room=${roomId}`;
 
+  // YouTube Iframe API handshake: must be { event: 'listening' }
+  const sendHandshake = () => {
+    if (iframeRef.current?.contentWindow) {
+      try {
+        iframeRef.current.contentWindow.postMessage(
+          JSON.stringify({ event: 'listening' }),
+          '*'
+        );
+      } catch (err) {}
+    }
+  };
+
+  // Helper to reliably send commands to YouTube Iframe
+  // args MUST be an array for YouTube's Function.prototype.apply
+  const sendYouTubeCommand = (func, args = []) => {
+    if (iframeRef.current?.contentWindow) {
+      try {
+        iframeRef.current.contentWindow.postMessage(
+          JSON.stringify({
+            event: 'command',
+            func: func,
+            args: Array.isArray(args) ? args : [args]
+          }),
+          '*'
+        );
+      } catch (err) {
+        console.error('Failed to postMessage to YouTube iframe:', err);
+      }
+    }
+  };
+
+  // Activate audio context and trigger video playback
+  const activateAndPlay = () => {
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (AudioCtx) {
+        const ctx = new AudioCtx();
+        ctx.resume();
+      }
+    } catch {}
+
+    sendHandshake();
+    sendYouTubeCommand('unMute');
+    sendYouTubeCommand('setVolume', [100]);
+    sendYouTubeCommand('playVideo');
+    setNeedsActivation(false);
+    if (activationTimerRef.current) clearTimeout(activationTimerRef.current);
+  };
+
+  // Global TV remote / touch / click interaction to satisfy browser autoplay policy
+  useEffect(() => {
+    const handleGlobalInteraction = (e) => {
+      if (e.type === 'click' || e.type === 'touchstart' || e.type === 'tv-remote-play') {
+        activateAndPlay();
+      } else if (e.type === 'keydown') {
+        // TV remote keys: Enter, Space, DPAD_CENTER (23), or MediaPlayPause (179)
+        if (['Enter', ' ', 'MediaPlayPause', 'MediaPlay'].includes(e.key) || [13, 32, 23, 179].includes(e.keyCode)) {
+          activateAndPlay();
+        }
+      }
+    };
+
+    window.addEventListener('click', handleGlobalInteraction);
+    window.addEventListener('touchstart', handleGlobalInteraction);
+    window.addEventListener('keydown', handleGlobalInteraction);
+    window.addEventListener('tv-remote-play', handleGlobalInteraction);
+
+    return () => {
+      window.removeEventListener('click', handleGlobalInteraction);
+      window.removeEventListener('touchstart', handleGlobalInteraction);
+      window.removeEventListener('keydown', handleGlobalInteraction);
+      window.removeEventListener('tv-remote-play', handleGlobalInteraction);
+    };
+  }, [currentSong]);
+
   // Listen to postMessage from YouTube Iframe for song end / state changes
   useEffect(() => {
     const handleWindowMessage = (event) => {
       try {
         const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
-        if (data && data.event === 'onStateChange') {
-          // info 0: ENDED
-          if (data.info === 0) {
+        if (!data) return;
+
+        // YouTube onReady event
+        if (data.event === 'onReady') {
+          sendYouTubeCommand('unMute');
+          sendYouTubeCommand('setVolume', [100]);
+          sendYouTubeCommand('playVideo');
+        }
+
+        // YouTube onStateChange or infoDelivery events
+        let stateCode = null;
+        if (data.event === 'onStateChange') {
+          stateCode = data.info;
+        } else if (data.event === 'infoDelivery' && data.info?.playerState !== undefined) {
+          stateCode = data.info.playerState;
+        }
+
+        if (stateCode !== null) {
+          if (stateCode === 0) {
+            // ENDED
             console.log('Video ended, skipping to next song');
+            setLocalPlayerState('ended');
             socket.emit('song-ended', { roomId });
-          } else if (data.info === 1) {
+          } else if (stateCode === 1) {
+            // PLAYING
+            setLocalPlayerState('playing');
+            setNeedsActivation(false);
+            if (activationTimerRef.current) clearTimeout(activationTimerRef.current);
             socket.emit('screen-sync', { roomId, playerState: 'playing' });
-          } else if (data.info === 2) {
+          } else if (stateCode === 2) {
+            // PAUSED
+            setLocalPlayerState('paused');
             socket.emit('screen-sync', { roomId, playerState: 'paused' });
+          } else if (stateCode === 3) {
+            // BUFFERING
+            setLocalPlayerState('buffering');
+            socket.emit('screen-sync', { roomId, playerState: 'buffering' });
           }
         }
       } catch {}
@@ -88,38 +195,37 @@ export default function ScreenPlayer({ roomId = 'SING', onSwitchMode }) {
 
     socket.on('play-song', (song) => {
       setCurrentSong(song || null);
+      if (song?.id) {
+        setLocalPlayerState('buffering');
+        setNeedsActivation(false);
+
+        // If browser blocks unmuted autoplay without gesture, prompt user after 2.5s
+        if (activationTimerRef.current) clearTimeout(activationTimerRef.current);
+        activationTimerRef.current = setTimeout(() => {
+          setNeedsActivation(true);
+        }, 2500);
+
+        setTimeout(() => {
+          sendHandshake();
+          sendYouTubeCommand('unMute');
+          sendYouTubeCommand('playVideo');
+        }, 400);
+      } else {
+        setLocalPlayerState('idle');
+        setNeedsActivation(false);
+      }
     });
 
     socket.on('control-action', ({ action, value }) => {
-      if (!iframeRef.current?.contentWindow) return;
-      try {
-        if (action === 'play') {
-          iframeRef.current.contentWindow.postMessage(
-            JSON.stringify({ event: 'command', func: 'playVideo', args: '' }),
-            '*'
-          );
-        } else if (action === 'pause') {
-          iframeRef.current.contentWindow.postMessage(
-            JSON.stringify({ event: 'command', func: 'pauseVideo', args: '' }),
-            '*'
-          );
-        } else if (action === 'restart') {
-          iframeRef.current.contentWindow.postMessage(
-            JSON.stringify({ event: 'command', func: 'seekTo', args: [0, true] }),
-            '*'
-          );
-          iframeRef.current.contentWindow.postMessage(
-            JSON.stringify({ event: 'command', func: 'playVideo', args: '' }),
-            '*'
-          );
-        } else if (action === 'seek' && typeof value === 'number') {
-          iframeRef.current.contentWindow.postMessage(
-            JSON.stringify({ event: 'command', func: 'seekTo', args: [value, true] }),
-            '*'
-          );
-        }
-      } catch (err) {
-        console.error('Failed to postMessage to YouTube iframe:', err);
+      if (action === 'play') {
+        activateAndPlay();
+      } else if (action === 'pause') {
+        sendYouTubeCommand('pauseVideo');
+      } else if (action === 'restart') {
+        sendYouTubeCommand('seekTo', [0, true]);
+        activateAndPlay();
+      } else if (action === 'seek' && typeof value === 'number') {
+        sendYouTubeCommand('seekTo', [value, true]);
       }
     });
 
@@ -135,16 +241,31 @@ export default function ScreenPlayer({ roomId = 'SING', onSwitchMode }) {
     };
   }, [roomId]);
 
-  // Tell YouTube iframe to listen for postMessages as soon as it loads
+  // Tell YouTube iframe to listen for postMessages and immediately autoplay
   const handleIframeLoad = () => {
-    if (iframeRef.current?.contentWindow) {
-      try {
-        iframeRef.current.contentWindow.postMessage(
-          JSON.stringify({ event: 'listening' }),
-          '*'
-        );
-      } catch {}
-    }
+    sendHandshake();
+    sendYouTubeCommand('unMute');
+    sendYouTubeCommand('setVolume', [100]);
+    sendYouTubeCommand('playVideo');
+
+    // Subsequent retries ensure autoplay kicks in even if YouTube JS was still loading
+    setTimeout(() => {
+      sendHandshake();
+      sendYouTubeCommand('unMute');
+      sendYouTubeCommand('playVideo');
+    }, 400);
+
+    setTimeout(() => {
+      sendHandshake();
+      sendYouTubeCommand('unMute');
+      sendYouTubeCommand('playVideo');
+    }, 1200);
+
+    setTimeout(() => {
+      sendHandshake();
+      sendYouTubeCommand('unMute');
+      sendYouTubeCommand('playVideo');
+    }, 2200);
   };
 
   const toggleFullscreen = () => {
@@ -270,6 +391,26 @@ export default function ScreenPlayer({ roomId = 'SING', onSwitchMode }) {
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
               allowFullScreen
             />
+
+            {/* Tap / Click prompt if browser blocks autoplay before first user gesture */}
+            {needsActivation && localPlayerState !== 'playing' && (
+              <div
+                onClick={activateAndPlay}
+                className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/70 backdrop-blur-sm cursor-pointer transition-all hover:bg-black/50 p-6 text-center select-none"
+              >
+                <div className="p-6 sm:p-8 rounded-3xl bg-gradient-to-tr from-rose-600 to-purple-600 text-white shadow-2xl flex flex-col items-center gap-4 animate-pulse border border-white/30 max-w-md">
+                  <div className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center shadow-inner">
+                    <Play className="w-8 h-8 fill-white ml-1" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl sm:text-2xl font-black">Click Screen or Press OK to Sing!</h3>
+                    <p className="text-xs sm:text-sm text-rose-100 mt-1">
+                      Web browsers need 1 tap or TV remote OK to enable audio. Or press Play on your phone remote!
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         ) : (
           /* Standby / Idle Screen when no song is playing */

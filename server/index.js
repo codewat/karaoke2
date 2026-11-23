@@ -121,7 +121,7 @@ io.on('connection', (socket) => {
     if (!room.currentSong) {
       // Nothing is playing, start immediately
       room.currentSong = queueItem;
-      room.playerState = 'playing';
+      room.playerState = 'buffering';
       room.currentTime = 0;
       io.to(`room:${room.roomId}`).emit('play-song', room.currentSong);
     } else if (playNext) {
@@ -169,7 +169,7 @@ io.on('connection', (socket) => {
 
     const [selectedSong] = room.queue.splice(index, 1);
     room.currentSong = selectedSong;
-    room.playerState = 'playing';
+    room.playerState = 'buffering';
     room.currentTime = 0;
 
     io.to(`room:${room.roomId}`).emit('play-song', room.currentSong);
@@ -188,7 +188,7 @@ io.on('connection', (socket) => {
 
       if (room.queue.length > 0) {
         room.currentSong = room.queue.shift();
-        room.playerState = 'playing';
+        room.playerState = 'buffering';
         room.currentTime = 0;
         io.to(`room:${room.roomId}`).emit('play-song', room.currentSong);
       } else {
@@ -212,8 +212,8 @@ io.on('connection', (socket) => {
     if (currentTime !== undefined) room.currentTime = currentTime;
     if (duration !== undefined) room.duration = duration;
 
-    // Send light update to remotes
-    socket.to(`room:${room.roomId}`).emit('player-status-update', {
+    // Broadcast accurate state to all devices
+    io.to(`room:${room.roomId}`).emit('player-status-update', {
       playerState: room.playerState,
       currentTime: room.currentTime,
       duration: room.duration
@@ -230,7 +230,7 @@ io.on('connection', (socket) => {
 
     if (room.queue.length > 0) {
       room.currentSong = room.queue.shift();
-      room.playerState = 'playing';
+      room.playerState = 'buffering';
       room.currentTime = 0;
       io.to(`room:${room.roomId}`).emit('play-song', room.currentSong);
     } else {
