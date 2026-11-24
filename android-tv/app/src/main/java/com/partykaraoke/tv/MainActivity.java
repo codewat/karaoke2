@@ -32,8 +32,9 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // Keep screen on while karaoke is active on the TV
+        // Keep screen on while karaoke is active on the TV and enforce hardware acceleration
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED);
 
         // Enable immersive full-screen mode on TV
         hideSystemUI();
@@ -71,18 +72,27 @@ public class MainActivity extends Activity {
     }
 
     private void setupWebView() {
+        // Enforce hardware acceleration on the WebView layer for 60fps video playback
+        webView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
+
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
         settings.setDatabaseEnabled(true);
         settings.setLoadWithOverviewMode(true);
         settings.setUseWideViewPort(true);
+        settings.setCacheMode(WebSettings.LOAD_DEFAULT);
+        settings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
 
         // Crucial for Android TV: Allow YouTube player to autoplay without touch gesture
         settings.setMediaPlaybackRequiresUserGesture(false);
 
-        // Set modern Desktop / TV User-Agent for seamless YouTube playback
-        settings.setUserAgentString("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36 PartyKaraokeTV/1.0");
+        // Append TV app identifier to native Android TV User-Agent so YouTube serves
+        // hardware-decoded H.264 streams instead of heavy desktop AV1 streams
+        String defaultUa = settings.getUserAgentString();
+        if (defaultUa != null && !defaultUa.contains("PartyKaraokeTV")) {
+            settings.setUserAgentString(defaultUa + " PartyKaraokeTV/1.0");
+        }
 
         webView.setWebChromeClient(new WebChromeClient() {
             @Override

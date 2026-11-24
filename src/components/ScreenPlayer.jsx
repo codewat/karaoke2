@@ -32,6 +32,7 @@ export default function ScreenPlayer({ roomId = 'SING', onSwitchMode }) {
   const [localPlayerState, setLocalPlayerState] = useState('idle');
   const [needsActivation, setNeedsActivation] = useState(false);
   const activationTimerRef = useRef(null);
+  const lastReportedStateRef = useRef(null);
 
   const iframeRef = useRef(null);
   const containerRef = useRef(null);
@@ -141,6 +142,8 @@ export default function ScreenPlayer({ roomId = 'SING', onSwitchMode }) {
 
         // YouTube onReady event
         if (data.event === 'onReady') {
+          sendYouTubeCommand('setPlaybackQuality', ['hd720']);
+          sendYouTubeCommand('setPlaybackQualityRange', ['medium', 'hd720']);
           sendYouTubeCommand('unMute');
           sendYouTubeCommand('setVolume', [100]);
           sendYouTubeCommand('playVideo');
@@ -154,7 +157,10 @@ export default function ScreenPlayer({ roomId = 'SING', onSwitchMode }) {
           stateCode = data.info.playerState;
         }
 
-        if (stateCode !== null) {
+        // Deduplicate state transitions to prevent flooding WebSocket and TV CPU
+        if (stateCode !== null && stateCode !== lastReportedStateRef.current) {
+          lastReportedStateRef.current = stateCode;
+
           if (stateCode === 0) {
             // ENDED
             console.log('Video ended, skipping to next song');
@@ -196,6 +202,7 @@ export default function ScreenPlayer({ roomId = 'SING', onSwitchMode }) {
     socket.on('play-song', (song) => {
       setCurrentSong(song || null);
       if (song?.id) {
+        lastReportedStateRef.current = null;
         setLocalPlayerState('buffering');
         setNeedsActivation(false);
 
@@ -207,10 +214,13 @@ export default function ScreenPlayer({ roomId = 'SING', onSwitchMode }) {
 
         setTimeout(() => {
           sendHandshake();
+          sendYouTubeCommand('setPlaybackQuality', ['hd720']);
+          sendYouTubeCommand('setPlaybackQualityRange', ['medium', 'hd720']);
           sendYouTubeCommand('unMute');
           sendYouTubeCommand('playVideo');
         }, 400);
       } else {
+        lastReportedStateRef.current = null;
         setLocalPlayerState('idle');
         setNeedsActivation(false);
       }
@@ -244,6 +254,8 @@ export default function ScreenPlayer({ roomId = 'SING', onSwitchMode }) {
   // Tell YouTube iframe to listen for postMessages and immediately autoplay
   const handleIframeLoad = () => {
     sendHandshake();
+    sendYouTubeCommand('setPlaybackQuality', ['hd720']);
+    sendYouTubeCommand('setPlaybackQualityRange', ['medium', 'hd720']);
     sendYouTubeCommand('unMute');
     sendYouTubeCommand('setVolume', [100]);
     sendYouTubeCommand('playVideo');
@@ -251,6 +263,7 @@ export default function ScreenPlayer({ roomId = 'SING', onSwitchMode }) {
     // Subsequent retries ensure autoplay kicks in even if YouTube JS was still loading
     setTimeout(() => {
       sendHandshake();
+      sendYouTubeCommand('setPlaybackQuality', ['hd720']);
       sendYouTubeCommand('unMute');
       sendYouTubeCommand('playVideo');
     }, 400);
@@ -384,8 +397,9 @@ export default function ScreenPlayer({ roomId = 'SING', onSwitchMode }) {
             <iframe
               ref={iframeRef}
               key={currentSong.idKey || currentSong.id}
-              src={`https://www.youtube.com/embed/${currentSong.id}?autoplay=1&enablejsapi=1&rel=0&modestbranding=1&playsinline=1&origin=${encodeURIComponent(window.location.origin)}`}
+              src={`https://www.youtube.com/embed/${currentSong.id}?autoplay=1&enablejsapi=1&rel=0&modestbranding=1&playsinline=1&iv_load_policy=3&disablekb=1&origin=${encodeURIComponent(window.location.origin)}`}
               title={currentSong.title}
+              loading="eager"
               onLoad={handleIframeLoad}
               className="w-full h-full border-0 absolute inset-0 z-0"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
